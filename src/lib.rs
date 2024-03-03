@@ -171,19 +171,19 @@ fn draw_header_element(
 
     let rect_rect = rect.rect.clone();
 
-    rect_painter.add(RectShape::stroke(
-        rect_rect,
-        Rounding::ZERO,
-        Stroke::new(1., Color32::BLUE),
-    ));
+    // rect_painter.add(RectShape::stroke(
+    //     rect_rect,
+    //     Rounding::ZERO,
+    //     Stroke::new(1., Color32::BLUE),
+    // ));
 
-    if rect.hovered() {
-        rect_painter.add(RectShape::stroke(
-            rect_rect,
-            Rounding::ZERO,
-            Stroke::new(1., Color32::WHITE),
-        ));
-    }
+    // if rect.hovered() {
+    //     rect_painter.add(RectShape::stroke(
+    //         rect_rect,
+    //         Rounding::ZERO,
+    //         Stroke::new(1., Color32::WHITE),
+    //     ));
+    // }
 
     rect
 }
