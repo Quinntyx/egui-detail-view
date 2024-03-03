@@ -1,6 +1,6 @@
 pub mod render;
 
-use egui::{epaint::RectShape, LayerId};
+use egui::{epaint::RectShape, LayerId, Response, Ui};
 #[allow(unused_imports)]
 use egui::{
     pos2, vec2, Align, Align2, Color32, FontId, Layout, Mesh, Rect, Rounding, Sense, Stroke,
@@ -132,11 +132,60 @@ impl<'a, T: DetailListEntry> DetailList<'a, T> {
     }
 
     pub fn with_row_height(self, row_height: f32) -> Self {
-        Self {
-            row_height,
-            ..self
-        }
+        Self { row_height, ..self }
     }
+}
+
+fn draw_header_element(
+    ui: &mut Ui,
+    field: FieldConfig,
+    draw_arrow: bool,
+    reverse: bool,
+) -> Response {
+    let painter = ui.painter();
+    let text = painter.text(
+        ui.max_rect().left_center(),
+        Align2::LEFT_CENTER,
+        field.title(),
+        TextStyle::Heading.resolve(ui.style()),
+        Color32::WHITE,
+    );
+
+    if draw_arrow {
+        let tri_base = text.right_center() + vec2(10., -1. * 3f32.sqrt());
+        let mut mesh: egui::Mesh = Mesh::default();
+        mesh.add_triangle_simple(
+            tri_base - vec2(2., 0.),
+            tri_base + vec2(2., 0.),
+            tri_base + vec2(0., 2. * 3f32.sqrt()),
+            Color32::WHITE,
+        );
+        mesh.scale(2.);
+        if reverse {
+            mesh.mirror_y(text.right_center().y);
+        }
+        painter.add(mesh);
+    }
+
+    let (rect, rect_painter) = ui.allocate_painter(ui.max_rect().size(), Sense::click());
+
+    let rect_rect = rect.rect.clone();
+
+    rect_painter.add(RectShape::stroke(
+        rect_rect,
+        Rounding::ZERO,
+        Stroke::new(1., Color32::BLUE),
+    ));
+
+    if rect.hovered() {
+        rect_painter.add(RectShape::stroke(
+            rect_rect,
+            Rounding::ZERO,
+            Stroke::new(1., Color32::WHITE),
+        ));
+    }
+
+    rect
 }
 
 // TODO(quinntyx): figure out why I need so many 'statics
@@ -158,48 +207,18 @@ impl<'a, T: DetailListEntry> Widget for DetailList<'a, T> {
         let table = table_builder.header(self.row_height, |mut header| {
             for field in self.state.fields.iter() {
                 header.col(|ui| {
-                    let painter = ui.painter();
-                    let text = painter.text(
-                        ui.max_rect().left_center(),
-                        Align2::LEFT_CENTER,
-                        field.title(),
-                        TextStyle::Heading.resolve(ui.style()),
-                        Color32::WHITE,
-                    );
-
-                    if self.state.sorted_by == Some(field.title()) {
-                        let tri_base = text.right_center() + vec2(10., -1. * 3f32.sqrt());
-                        let mut mesh: egui::Mesh = Mesh::default();
-                        mesh.add_triangle_simple(
-                            tri_base - vec2(2., 0.),
-                            tri_base + vec2(2., 0.),
-                            tri_base + vec2(0., 2. * 3f32.sqrt()),
-                            Color32::WHITE,
-                        );
-                        mesh.scale(2.);
-                        if self.state.reverse_sort {
-                            mesh.mirror_y(text.right_center().y);
-                        }
-                        painter.add(mesh);
-                    }
-
                     if field.sort_enabled && !field.sortable {
                         panic!("invalid field configuration");
                     }
-
-                    let (rect, rect_painter) = ui.allocate_painter(ui.max_rect().size(), Sense::click());
-
-                    let rect_rect = rect.rect.clone();
-
-                    if rect.hovered() {
-                        rect_painter.add(RectShape::stroke(
-                            rect_rect,
-                            Rounding::ZERO,
-                            Stroke::new(1., Color32::WHITE),
-                        ));
-                    }
-
-                    if rect.clicked() && field.sort_enabled {
+                    if draw_header_element(
+                        ui,
+                        field.clone(),
+                        self.state.sorted_by == Some(field.title()),
+                        self.state.reverse_sort,
+                    )
+                    .clicked()
+                        && field.sort_enabled
+                    {
                         if self.state.sorted_by == Some(field.title.clone()) {
                             self.state.reverse_sort = !self.state.reverse_sort;
                             if self.state.reverse_sort {
